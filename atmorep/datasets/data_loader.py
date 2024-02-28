@@ -21,7 +21,7 @@ import xarray as xr
 from functools import partial
 
 import atmorep.utils.utils as utils
-from atmorep.config.config import year_base, fname_base
+from atmorep.config.config import year_base, fname_base, grib_index
 from atmorep.utils.utils import tokenize
 from atmorep.datasets.file_io import grib_file_loader, netcdf_file_loader, bin_file_loader
 
@@ -60,12 +60,7 @@ class DataLoader:
       
       self.fname_base = fname_base + self.file_ext
 
-      self.grib_index = { 'vorticity' : 'vo', 'divergence' : 'd', 'geopotential' : 'z',
-                          'orography' : 'z', 'temperature': 't', 'specific_humidity' : 'q',
-                          'mean_top_net_long_wave_radiation_flux' : 'mtnlwrf',
-                          'velocity_u' : 'u', 'velocity_v': 'v', 'velocity_z' : 'w',
-                          'total_precip' : 'tp', 'radar_precip' : 'yw_hourly',
-                          't2m' : 't_2m', 'u_10m' : 'u_10m', 'v_10m' : 'v_10m',  }
+      self.grib_index = grib_index
 
     def get_field( self, year, month, field, level_type, vl, 
                    token_size = [-1, -1], t_pad = [-1, -1, 1]):
