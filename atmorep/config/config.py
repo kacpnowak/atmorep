@@ -10,7 +10,7 @@ path_models = Path( fpath, '../../models/')
 path_results = Path( fpath, '../../results/')
 path_data = Path( fpath, '../../../data/one-degree/')
 path_plots = Path( fpath, '../results/plots/')
-fname_base = '{}/{}/{}.{}.{}.{}'
+fname_base = '{}/{}/{}.{}.{}'
 
 grib_index = { 'vorticity' : 'vo', 'divergence' : 'd', 'geopotential' : 'z',
                 'orography' : 'z', 'temperature': 'temp', 'specific_humidity' : 'q',
