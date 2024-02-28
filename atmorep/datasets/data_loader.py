@@ -21,7 +21,7 @@ import xarray as xr
 from functools import partial
 
 import atmorep.utils.utils as utils
-from atmorep.config.config import year_base
+from atmorep.config.config import year_base, fname_base
 from atmorep.utils.utils import tokenize
 from atmorep.datasets.file_io import grib_file_loader, netcdf_file_loader, bin_file_loader
 
@@ -32,7 +32,6 @@ class DataLoader:
     
     def __init__(self, path, file_shape, data_type = 'reanalysis',
                        file_format = 'grib', level_type = 'pl',
-                       fname_base = '{}/{}/{}{}/{}_{}_y{}_m{}_{}{}',
                        smoothing = 0,
                        log_transform = False): 
 
