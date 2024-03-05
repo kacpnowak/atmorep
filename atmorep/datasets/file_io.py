@@ -29,9 +29,9 @@ def netcdf_file_loader(fname, field, time_padding=[0, 0, 1], fesom=0, static=Fal
     # This is done to ensure backwards compatibilty
     if not isinstance(days_in_month, int):
         (year, month, level) = fesom
-        print(fesom)
+        # print(fesom)
         start = days_until_month_in_year(year, month)
-        print(days_in_month(year, month))
+        # print(days_in_month(year, month))
         end = start + days_in_month(year, month)
         ds = ds[start:end, level, :, :]
     else:

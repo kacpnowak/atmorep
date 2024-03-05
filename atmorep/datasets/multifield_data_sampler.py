@@ -67,7 +67,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
     
     # TODO: this assumes file_shape is set correctly and not just per field and it defines a 
     # reference grid, likely has to be the coarsest
-    self.res = 360. / file_shape[2]
+    self.res = 360. / file_shape[-1]
     
     # avoid wrap around at poles
     pole_offset = np.ceil(fields[0][3][1] * fields[0][4][1] / 2) * self.res
@@ -112,7 +112,8 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
     # create (source) fields
     self.datasets = self.create_loaders( fields)
 
-    # create (target) fields 
+    # create (target) fields
+    print(f"\n\n !!! field targets {fields_targets} !!! \n\n")
     self.datasets_targets = self.create_loaders( fields_targets)
 
   ###################################################
@@ -133,6 +134,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
 
       smoothing = self.smoothing
       log_transform_data = False
+      print(f"\n\nFIELD INFO!!!!  {field_info} !!! \n\n")
       if len(field_info) > 7 :
         (data_type, file_shape, file_geo_range, file_format) = field_info[7][:4]
         if len( field_info[7]) > 6 :
@@ -141,7 +143,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
         if len( field_info[7]) > 7 :
           log_transform_data = field_info[7][7]
           print( '{} : log_transform_data = {}'.format( field_info[0], log_transform_data) )
-      else :
+      else:
         data_type = 'era5'
         file_format = self.file_format
         file_shape = self.file_shape
@@ -155,6 +157,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
                                          
       # dynamic fields
       elif 1 == field_info[1][0] :
+        # print(f"\n jbn vertical levels: {vls} \n")
         for vlevel in vls :
           datasets[-1].append( DynamicFieldLevel( self.file_path, self.years_data, field_info,
                                                   self.batch_size, data_type,
@@ -196,12 +199,13 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
       # ensure a constant size of work load of data loader independent of the month length 
       # factor of 128 is a fudge parameter to ensure that mod-ing leads to sufficiently 
       # random wrap-around (with 1 instead of 128 there is clustering on the first days)
-      hours_in_day = int( 24 / self.time_sampling)
+      hours_in_day = 1#int( 24 / self.time_sampling)
       time_slices = 128 * 31 * hours_in_day
       time_slices_i_ym = hours_in_day * days_in_month( ym[0], ym[1])
       idxs_perm_temp = np.mod(self.rng.permutation(time_slices), time_slices_i_ym)
       # fixed number of time samples independent of length of month
       idxs_perm_temp = idxs_perm_temp[:self.num_t_samples]
+      # print(f"\n\n !!! indx perm temp {idxs_perm_temp} !!! \n\n")
       idxs_perm = np.zeros( (self.num_patches_per_t *idxs_perm_temp.shape[0],4) )
 
       # split up into file index and local index
@@ -262,7 +266,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
 
       ym = self.years_months[i_ym]
 
-      hours_in_day = int( 24 / self.time_sampling)
+      hours_in_day = 1# int( 24 / self.time_sampling)
       idxs_perm_temp = np.arange( hours_in_day * days_in_month( ym[0], ym[1]))
       idxs_perm = np.zeros( (self.num_patches_per_t *idxs_perm_temp.shape[0],4) )
 
@@ -306,14 +310,14 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
   def load_data( self, batch_size = None) :
 
     years_data = self.years_data
-    
+    print(f"\n\n !!! years data {years_data} !!! \n\n")
     # ensure proper separation of different random samplers
     delta = torch.randint( 0, 1000, (1,)).item()
     self.rng.bit_generator.advance( delta)
 
     # select num_load random months and years 
     perms = np.concatenate( [self.rng.permutation( np.arange(len(years_data))) for i in range(64)])
-    perms = perms[:self.num_load]
+    perms = perms[:self.num_load * config.months_per_file]
     if self.month : 
       self.years_months = [ (years_data[iyear], self.month) for iyear in perms]
     else : 
@@ -330,9 +334,10 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
     self.shuffle()
 
     # perform actual loading of data
- 
+    print(f"\n\n !!! year month {self.years_months} !!! \n\n")
     for ds_field in self.datasets :
       for ds in ds_field :
+        print(f"\n\n !!! ds field {ds} !!! \n\n")
         ds.load_data( self.years_months, self.idxs_perm, batch_size)
 
     for ds_field in self.datasets_targets :
@@ -445,7 +450,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
       # ensure a constant size of work load of data loader independent of the month length 
       # factor of 128 is a fudge parameter to ensure that mod-ing leads to sufficiently 
       # random wrap-around (with 1 instead of 128 there is clustering on the first days)
-      hours_in_day = int( 24 / self.time_sampling)
+      hours_in_day = 1#int( 24 / self.time_sampling)
       d_i_m = days_in_month( ym[0], ym[1]) 
       perms = self.rng.permutation( num_t_samples_per_month * d_i_m)
       # ensure that days start at 1
