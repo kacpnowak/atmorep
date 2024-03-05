@@ -30,6 +30,8 @@ from atmorep.utils.utils import shape_to_str
 from atmorep.utils.utils import days_until_month_in_year
 from atmorep.utils.utils import days_in_month
 
+from atmorep.config import config
+
 from atmorep.datasets.data_loader import DataLoader
 from atmorep.datasets.normalizer_global import NormalizerGlobal
 from atmorep.datasets.normalizer_local import NormalizerLocal
@@ -48,7 +50,7 @@ class DynamicFieldLevel() :
       Data set for single dynamic field at a single vertical level
     '''
 
-    self.years_data = years_data
+    self.years_data = years_data # UNUSED
     self.field_info   = field_info
     self.file_path    = file_path
     self.file_shape   = file_shape
@@ -89,7 +91,7 @@ class DynamicFieldLevel() :
     self.tok_size = token_size
 
     self.data_field = None
-
+    print(f"\n vertical kurwa level : {vl} \n")
     if self.corr_type == 'global' :
       self.normalizer = NormalizerGlobal( field_info, vl, self.file_shape, data_type)
     else :
@@ -135,8 +137,12 @@ class DynamicFieldLevel() :
     for j in range( len(self.data_field) ) :
 
       if self.corr_type == 'local' :
-        coords = [ np.linspace( 0., 180., num=180*4+1, endpoint=True), 
-                   np.linspace( 0., 360., num=360*4, endpoint=False) ]
+        coords = [ np.linspace( 0, config.lat_range,
+                                num=config.lat_range * config.number_of_steps_per_degree,
+                                endpoint=True, dtype=int),
+                   np.linspace( 0, config.long_range,
+                                num=config.long_range * config.number_of_steps_per_degree,
+                                endpoint=False, dtype=int) ]
       else :
         coords = None
 
@@ -178,39 +184,46 @@ class DynamicFieldLevel() :
       # perform a deep copy to not overwrite cid for other fields
       cid = np.array( self.idxs_perm[idx][1:]).copy()
       cid_orig = cid.copy()
-
+      # print(f"\n\n !!! cid {cid} indx {self.idxs_perm[idx][1:]}  file shape {file_shape} !!! \n\n")
       # map to grid coordinates (first map to normalized [0,1] coords and then to grid coords)
       cid[2] = np.mod( cid[2], 360.) if self.is_global else cid[2]
       assert cid[1] >= geor[0][0] and cid[1] <= geor[0][1], 'invalid latitude for geo_range' 
-      cid[1] = ( (cid[1] - geor[0][0]) / (geor[0][1] - geor[0][0]) ) * file_shape[1]
-      cid[2] = ( ((cid[2]) - geor[1][0]) / (geor[1][1] - geor[1][0]) ) * file_shape[2]
-      assert cid[1] >= 0 and cid[1] < self.file_shape[1]
-      assert cid[2] >= 0 and cid[2] < self.file_shape[2]
+      cid[1] = ( (cid[1] - geor[0][0]) / (geor[0][1] - geor[0][0]) ) * file_shape[-2]
+      cid[2] = ( ((cid[2]) - geor[1][0]) / (geor[1][1] - geor[1][0]) ) * file_shape[-1]
+      assert cid[1] >= 0 and cid[1] < self.file_shape[-2]
+      assert cid[2] >= 0 and cid[2] < self.file_shape[-1]
 
       # alignment when parent field has different resolution than this field
       cid = np.round( cid).astype( np.int64)
 
-      ran_t = list( range( cid[0]-tnt+1 + offset_t, cid[0]+1 + offset_t))
+      ran_t = np.mod(np.array(list( range( cid[0]-tnt+1 + offset_t, cid[0]+1 + offset_t))), self.data_field[i_ym].shape[0])
+      # print(f"\n\n !!! cid {cid} data field shape {self.data_field[i_ym].shape}  offset {offset_t} tnt {tnt}!!! \n\n")
       if any(np.array(ran_t) >= self.data_field[i_ym].shape[0]) :
         print( '{} : {} :: {}'.format( self.field_info[0], self.years_months[i_ym], ran_t ))
 
+      print(f"\n\n !!!! file shape: {self.file_shape} !!! \n\n")
+
+      print(f"\n\n !!! i_ym {i_ym} !!! \n\n")
+      print(f"\n\n !!! ran_t {ran_t} !!! \n\n")
       # periodic boundary conditions around equator
       ran_lon = np.array( list( range( cid[2]-tn[1][0], cid[2]+tn[1][1])))
+      print(f"\n\n !!! ran_lon {ran_lon} !!! \n\n")
       if self.is_global :
-        ran_lon = np.mod( ran_lon, self.file_shape[2])
+        ran_lon = np.mod( ran_lon, self.file_shape[-1])
       else :
         # sanity check for indices for files with local window
         # this should be controlled by georange_sampling for sampling
-        assert all( ran_lon >= 0) and all( ran_lon < self.file_shape[2])
+        assert all( ran_lon >= 0) and all( ran_lon < self.file_shape[-1])
 
       ran_lat = np.array( list( range( cid[1]-tn[0][0], cid[1]+tn[0][1])))
-      assert all( ran_lat >= 0) and all( ran_lat < self.file_shape[1])
+      assert all( ran_lat >= 0) and all( ran_lat < self.file_shape[-2])
       
       # current data
       # if self.geo_range_flipped : 
       #   print( '{} : {} / {}'.format( self.field_info[0], ran_lat, ran_lon) )
       if np.max(ran_t) >= self.data_field[i_ym].shape[0] :
         print( 'WARNING: {} : {} :: {}'.format( self.field_info[0], ran_t, self.years_months[i_ym]) )
+      #
       x[jj] = np.take( np.take( self.data_field[i_ym][ran_t], ran_lat, 1), ran_lon, 2)
 
       # set per token information
