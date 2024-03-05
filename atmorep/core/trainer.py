@@ -423,7 +423,7 @@ class Trainer_Base() :
 
         total_loss += loss
         test_len += 1
-    
+
         # store detailed results on current test set for book keeping
         if cf.par_rank < cf.log_test_num_ranks :
           log_preds = [[p.detach().clone().cpu() for p in pred] for pred in preds]
@@ -547,7 +547,9 @@ class Trainer_Base() :
 
       target = self.targets[idx]
 
-      mse_loss = self.MSELoss( pred[0], target = target) 
+      mask = target != config.filler_value
+
+      mse_loss = self.MSELoss( pred[0][mask], target = target[mask])
       mse_loss_total += mse_loss.cpu().detach()
 
       # MSE loss
@@ -558,14 +560,15 @@ class Trainer_Base() :
       if 'mse_ensemble' in self.cf.losses :
         loss_en = torch.tensor( 0., device=target.device)
         for en in torch.transpose( pred[2], 1, 0) :
-          loss_en += self.MSELoss( en, target = target) 
+          loss_en += self.MSELoss( en[mask], target = target[mask])
         # losses['mse_ensemble'].append( 50. * loss_en / pred[2].shape[1])
         losses['mse_ensemble'].append( loss_en / pred[2].shape[1])
 
       # Generalized cross entroy loss for continuous distributions
       if 'stats' in self.cf.losses :
         stats_loss = Gaussian( target, pred[0], pred[1])  
-        diff = (stats_loss-1.) 
+        diff = (stats_loss-1.)
+
         # stats_loss = 0.01 * torch.mean( diff * diff) + torch.mean( torch.sqrt(torch.abs( pred[1])) )
         stats_loss = torch.mean( diff * diff) + torch.mean( torch.sqrt( torch.abs( pred[1])) )
         losses['stats'].append( stats_loss) 
