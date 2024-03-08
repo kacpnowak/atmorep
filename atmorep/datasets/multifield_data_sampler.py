@@ -113,7 +113,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
     self.datasets = self.create_loaders( fields)
 
     # create (target) fields
-    print(f"\n\n !!! field targets {fields_targets} !!! \n\n")
+    # print(f"\n\n !!! field targets {fields_targets} !!! \n\n")
     self.datasets_targets = self.create_loaders( fields_targets)
 
   ###################################################
@@ -334,10 +334,10 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
     self.shuffle()
 
     # perform actual loading of data
-    print(f"\n\n !!! year month {self.years_months} !!! \n\n")
+    # print(f"\n\n !!! year month {self.years_months} !!! \n\n")
     for ds_field in self.datasets :
       for ds in ds_field :
-        print(f"\n\n !!! ds field {ds} !!! \n\n")
+        # print(f"\n\n !!! ds field {ds} !!! \n\n")
         ds.load_data( self.years_months, self.idxs_perm, batch_size)
 
     for ds_field in self.datasets_targets :

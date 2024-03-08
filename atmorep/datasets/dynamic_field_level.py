@@ -197,7 +197,18 @@ class DynamicFieldLevel() :
       # alignment when parent field has different resolution than this field
       cid = np.round( cid).astype( np.int64)
 
-      ran_t = np.mod(np.array(list( range( cid[0]-tnt+1 + offset_t, cid[0]+1 + offset_t))), self.data_field[i_ym].shape[0])
+      ran_t = np.array(list( range( cid[0]-tnt+1 + offset_t, cid[0]+1 + offset_t)))
+      overtop = np.max(ran_t) - (self.data_field[i_ym].shape[0] - 1) # - 1 is due to arrays elements numbered from 0
+      # Check if in ran_t there are elements beyond the array size
+      # print(f"\n\n !!! przed ran_t {ran_t} !!! \n\n")
+      if overtop > 0:
+        # If overtop is larger than minimal value, shift will cause it to move out of array
+        assert(overtop <= np.min(ran_t))
+        #Shift ran_t, so that maximum value is at the end of array
+        ran_t -= (overtop)
+        # print(f"\n\n !!! po ran_t {ran_t} !!! \n\n")
+
+
       # print(f"\n\n !!! cid {cid} data field shape {self.data_field[i_ym].shape}  offset {offset_t} tnt {tnt}!!! \n\n")
       if any(np.array(ran_t) >= self.data_field[i_ym].shape[0]) :
         print( '{} : {} :: {}'.format( self.field_info[0], self.years_months[i_ym], ran_t ))
