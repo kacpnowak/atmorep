@@ -14,7 +14,7 @@ fname_base = '{}/{}/{}.{}.{}'
 
 filler_value = 0.0
 months_per_file = 12
-
+spatial_resolution = 1 # Degree
 # 1/Spatial resolution for data. Eg. for 1 deg -> 1, for 0.25 deg -> 4
 number_of_steps_per_degree = 1
 # Number of mesh elements

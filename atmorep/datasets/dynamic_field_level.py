@@ -76,8 +76,9 @@ class DynamicFieldLevel() :
 
     # resolution
     # TODO: non-uniform resolution in latitude and longitude
-    self.res = (file_geo_range[1][1] - file_geo_range[1][0])
-    self.res /= file_shape[2] if self.is_global else (file_shape[2]-1)
+    # self.res = (file_geo_range[1][1] - file_geo_range[1][0])
+    # self.res /= file_shape[-1] if self.is_global else (file_shape[-1]-1)
+    self.res = config.spatial_resolution
     
     self.batch_size = batch_size
     self.num_tokens = torch.tensor( num_tokens, dtype=torch.int)
@@ -91,7 +92,7 @@ class DynamicFieldLevel() :
     self.tok_size = token_size
 
     self.data_field = None
-    print(f"\n vertical kurwa level : {vl} \n")
+    # print(f"\n vertical kurwa level : {vl} \n")
     if self.corr_type == 'global' :
       self.normalizer = NormalizerGlobal( field_info, vl, self.file_shape, data_type)
     else :
@@ -201,13 +202,12 @@ class DynamicFieldLevel() :
       if any(np.array(ran_t) >= self.data_field[i_ym].shape[0]) :
         print( '{} : {} :: {}'.format( self.field_info[0], self.years_months[i_ym], ran_t ))
 
-      print(f"\n\n !!!! file shape: {self.file_shape} !!! \n\n")
+      # print(f"\n\n !!!! file shape: {self.file_shape} !!! \n\n")
 
-      print(f"\n\n !!! i_ym {i_ym} !!! \n\n")
-      print(f"\n\n !!! ran_t {ran_t} !!! \n\n")
+      # print(f"\n\n !!! i_ym {i_ym} !!! \n\n")
       # periodic boundary conditions around equator
       ran_lon = np.array( list( range( cid[2]-tn[1][0], cid[2]+tn[1][1])))
-      print(f"\n\n !!! ran_lon {ran_lon} !!! \n\n")
+      # print(f"\n\n !!! ran_lon {ran_lon} !!! \n\n")
       if self.is_global :
         ran_lon = np.mod( ran_lon, self.file_shape[-1])
       else :
