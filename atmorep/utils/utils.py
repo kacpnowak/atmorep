@@ -98,20 +98,20 @@ class Config :
       f.write( json_str)
 
   def load_json( self, wandb_id) :
-
     if '/' in wandb_id :   # assumed to be full path instead of just id
       fname = wandb_id
     else :
-      fname = Path( config.path_models, 'id{}/model_id{}.json'.format( wandb_id, wandb_id))
+      fname = Path( config.path_results, 'id{}/model_id{}.json'.format( wandb_id, wandb_id))
 
     try :
       with open(fname, 'r') as f :
         json_str = f.readlines() 
-    except IOError :
+    except (IOError, OSError) :
       # try path used for logging training results and checkpoints
       fname = Path( config.path_results, '/models/id{}/model_id{}.json'.format( wandb_id, wandb_id))
       with open(fname, 'r') as f :
         json_str = f.readlines()
+
 
     self.__dict__ = json.loads( json_str[0])
 
@@ -195,7 +195,8 @@ def setup_wandb( with_wandb, cf, rank, project_name = None, entity = 'atmorep', 
       else :
         wandb.init( id=wandb_id, resume='must',
                     mode = mode,
-                    config = cf.get_self_dict() )
+                    config = cf.get_self_dict(),
+                    setting = wandb.Settings(disable_git=True, save_code=False))
       wandb.run.log_code( root='./atmorep', include_fn=lambda path : path.endswith('.py'))
       
       # append slurm job id if defined

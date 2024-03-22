@@ -1,4 +1,7 @@
- ####################################################################################################
+import pdb
+import sys  ####################################################################################################
+import traceback
+
 #
 #  Copyright (C) 2022
 #
@@ -19,7 +22,7 @@ from atmorep.core.evaluator import Evaluator
 if __name__ == '__main__':
 
   # models for individual fields
-  model_id = '4nvwbetz'     # vorticity
+  model_id = 'zwq3bhj1'     # vorticity
   # model_id = 'oxpycr7w'     # divergence
   # model_id = '1565pb1f'     # specific_humidity
   # model_id = '3kdutwqb'     # total precip
@@ -48,10 +51,17 @@ if __name__ == '__main__':
   # mode, options = 'forecast', {'forecast_num_tokens' : 1} #, 'fields[0][2]' : [123, 137], 'attention' : False }
   
   # BERT forecast with patching to obtain global forecast
-  mode, options = 'global_forecast', { 'fields[0][2]' : [123, 137],
-                                       'dates' : [[2021, 2, 10, 12]],
-                                       'token_overlap' : [0, 0],
-                                       'forecast_num_tokens' : 1,
-                                       'attention' : False }
+  mode, options = 'global_forecast', {
+    'dates' : [[2020, 2, 10, 10]],
+    'token_overlap': [0, 0],
+    'forecast_num_tokens': 1,
+    'attention': False
+  }
+  try:
+    Evaluator.evaluate( mode, model_id, options)
+  except:
+    extype, value, tb = sys.exc_info()
+    traceback.print_exc()
+    pdb.post_mortem(tb)
 
-  Evaluator.evaluate( mode, model_id, options)
+

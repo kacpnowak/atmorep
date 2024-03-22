@@ -30,45 +30,45 @@ import atmorep.utils.utils as utils
 
 
 ####################################################################################################
-# def train_continue( wandb_id, epoch, Trainer, epoch_continue = -1) :
+def train_continue( wandb_id, epoch, Trainer, epoch_continue = -1) :
 
-#   num_accs_per_task = int( 4 / int( os.environ.get('SLURM_TASKS_PER_NODE', '1')[0] ))
-#   device = init_torch( num_accs_per_task)
-#   with_ddp = True
-#   par_rank, par_size = setup_ddp( with_ddp)
+  num_accs_per_task = int( 4 / int( os.environ.get('SLURM_TASKS_PER_NODE', '1')[0] ))
+  device = init_torch( num_accs_per_task)
+  with_ddp = True
+  par_rank, par_size = setup_ddp( with_ddp)
 
-#   cf = Config().load_json( wandb_id)
+  cf = Config().load_json( wandb_id)
 
-#   cf.with_ddp = with_ddp
-#   cf.par_rank = par_rank
-#   cf.par_size = par_size
-#   cf.optimizer_zero = False
-#   cf.attention = False
-#   # name has changed but ensure backward compatibility
-#   if hasattr( cf, 'loader_num_workers') :
-#     cf.num_loader_workers = cf.loader_num_workers
+  cf.with_ddp = with_ddp
+  cf.par_rank = par_rank
+  cf.par_size = par_size
+  cf.optimizer_zero = False
+  cf.attention = False
+  # name has changed but ensure backward compatibility
+  if hasattr( cf, 'loader_num_workers') :
+    cf.num_loader_workers = cf.loader_num_workers
 
-#   # any parameter in cf can be overwritten when training is continued, e.g. we can increase the 
-#   # masking rate 
-#   # cf.fields = [ [ 'specific_humidity', [ 1, 2048, [ ], 0 ], 
-#   #                               [ 96, 105, 114, 123, 137 ], 
-#   #                               [12, 6, 12], [3, 9, 9], [0.5, 0.9, 0.1, 0.05] ] ]
+  # any parameter in cf can be overwritten when training is continued, e.g. we can increase the
+  # masking rate
+  # cf.fields = [ [ 'specific_humidity', [ 1, 2048, [ ], 0 ],
+  #                               [ 96, 105, 114, 123, 137 ],
+  #                               [12, 6, 12], [3, 9, 9], [0.5, 0.9, 0.1, 0.05] ] ]
 
-#   setup_wandb( cf.with_wandb, cf, par_rank, project_name='train', mode='offline')  
-#   # resuming a run requires online mode, which is not available everywhere
-#   #setup_wandb( cf.with_wandb, cf, par_rank, wandb_id = wandb_id)  
+  setup_wandb( cf.with_wandb, cf, par_rank, project_name='train', mode='offline')
+  # resuming a run requires online mode, which is not available everywhere
+  #setup_wandb( cf.with_wandb, cf, par_rank, wandb_id = wandb_id)
   
-#   if cf.with_wandb and 0 == cf.par_rank :
-#     cf.write_json( wandb)
-#     cf.print()
+  if cf.with_wandb and 0 == cf.par_rank :
+    cf.write_json( wandb)
+    cf.print()
 
-#   if -1 == epoch_continue :
-#     epoch_continue = epoch
+  if -1 == epoch_continue :
+    epoch_continue = epoch
 
-#   # run
-#   trainer = Trainer.load( cf, wandb_id, epoch, device)
-#   print( 'Loaded run \'{}\' at epoch {}.'.format( wandb_id, epoch))
-#   trainer.run( epoch_continue)
+  # run
+  trainer = Trainer.load( cf, wandb_id, epoch, device)
+  print( 'Loaded run \'{}\' at epoch {}.'.format( wandb_id, epoch))
+  trainer.run( epoch_continue)
 
 ####################################################################################################
 def train() :
@@ -129,9 +129,9 @@ def train() :
   #                               [ 96, 105, 114, 123, 137 ], 
   #                               [12, 6, 12], [3, 9, 9], [0.25, 0.9, 0.1, 0.05] ] ]
 
-  cf.fields = [ [ 'temperature', [ 1, 1536, [ ], 0 ],
+  cf.fields = [ [ 'temperature', [ 1, 1024, [ ], 0 ],
                                 [ 0 ],
-                                 [2, 2, 4], [3, 27, 27], [0.5, 0.9, 0.1, 0.05], 'local', [data_type, file_shape, file_geo_range, file_format]] ]
+                                 [3, 6, 6], [3, 10, 10], [0.5, 0.9, 0.1, 0.05], 'local', [data_type, file_shape, file_geo_range, file_format]] ]
 
   # cf.fields = [ [ 'total_precip', [ 1, 2048, [ ], 0 ],
   #                                 [ 0 ], 
@@ -146,8 +146,8 @@ def train() :
   cf.fields_prediction = [ [cf.fields[0][0], 1.] ]
 
   cf.fields_targets = []
-  cf.forecast_num_tokens = 5
-  cf.years_train = list( range( 2011, 2020))
+  cf.forecast_num_tokens = 1
+  cf.years_train = list( range( 1958, 2020))
   cf.years_test = [2020]  #[2018]
   cf.month = None
   cf.geo_range_sampling = file_geo_range
@@ -156,7 +156,7 @@ def train() :
   cf.data_smoothing = 0
   cf.file_shape = file_shape
   cf.num_t_samples = 15#*24
-  cf.num_files_train = 9
+  cf.num_files_train = len(cf.years_train)
   cf.num_files_test = 1
   cf.num_patches_per_t_train = 8
   cf.num_patches_per_t_test = 4
@@ -167,7 +167,7 @@ def train() :
   cf.batch_size_start = 16
   cf.batch_size_max = 32
   cf.batch_size_delta = 8
-  cf.num_epochs = 48
+  cf.num_epochs = 24
   cf.num_loader_workers = 8
   # additional infos
   cf.size_token_info = 8
@@ -181,13 +181,13 @@ def train() :
   cf.learnable_mask = False
   cf.with_qk_lnorm = True
   # encoder
-  cf.encoder_num_layers = 10
-  cf.encoder_num_heads = 16
+  cf.encoder_num_layers = 8
+  cf.encoder_num_heads = 8
   cf.encoder_num_mlp_layers = 2
   cf.encoder_att_type = 'dense'
   # decoder
-  cf.decoder_num_layers = 10
-  cf.decoder_num_heads = 16
+  cf.decoder_num_layers = 8
+  cf.decoder_num_heads = 8
   cf.decoder_num_mlp_layers = 2
   cf.decoder_self_att = False
   cf.decoder_cross_att_ratio = 0.5
@@ -198,9 +198,9 @@ def train() :
   cf.net_tail_num_layers = 0
   # loss
   # supported: see Trainer for supported losses
-  # cf.losses = ['mse', 'stats']
-  # cf.losses = ['mse_ensemble', 'stats']
-  cf.losses = ['mse']
+  cf.losses = ['mse', 'stats']
+  # cf.losses = ['mse_ensemble']
+  # cf.losses = ['mse']
   # cf.losses = ['stats']
   # cf.losses = ['crps']
   # training
@@ -230,7 +230,7 @@ def train() :
 
   # usually use %>wandb offline to switch to disable syncing with server
   cf.with_wandb = True
-  setup_wandb( cf.with_wandb, cf, par_rank, 'train', mode='offline')  
+  setup_wandb( cf.with_wandb, cf, par_rank, 'train', mode='online')
 
   if cf.with_wandb and 0 == cf.par_rank :
     cf.write_json( wandb)

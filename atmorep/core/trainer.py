@@ -91,7 +91,7 @@ class Trainer_Base() :
 
   ###################################################
   def create( self, load_embeds=True) :
-    
+    # print(f"\n\nFIELD INFO!!!!  {self.cf.fields} !!! \n\n")
     net = AtmoRep( self.cf) 
     self.model = AtmoRepData( net)
 
@@ -381,13 +381,16 @@ class Trainer_Base() :
         batch_data = self.model.next()
         batch_data = self.prepare_batch( batch_data)
         torchinfo.summary( self.model, input_data=[batch_data])
-      
+
     # run test set evaluation
 
-    with torch.no_grad() : 
+    with torch.no_grad() :
+      # print(f"\n\n !!! model len {self.model.len( NetMode.test)} !!! \n\n")
+      # print(f"\n\n !!! offset {offset} !!! \n\n")
       for it in range( self.model.len( NetMode.test) - offset) :
-
+        # code.interact(local=locals())
         batch_data = self.model.next()
+
         if cf.par_rank < cf.log_test_num_ranks :
           # keep on cpu since it will otherwise clog up GPU memory
           (sources, token_infos, targets, tmis, tmis_list) = batch_data[0]
@@ -401,7 +404,10 @@ class Trainer_Base() :
           log_sources = ( [source.detach().clone().cpu() for source in sources ],
                           [ti.detach().clone().cpu() for ti in token_infos],
                           [target.detach().clone().cpu() for target in targets ],
-                            tmis, tmis_list ) 
+                            tmis, tmis_list )
+
+        # code.interact(local=locals())
+
 
         batch_data = self.prepare_batch( batch_data)
 
@@ -412,10 +418,11 @@ class Trainer_Base() :
         for pred, idx in zip( preds, self.fields_prediction_idx) :
 
           target = self.targets[idx]
+          mask = target != config.filler_value
           # hook for custom test loss
           self.test_loss( pred, target)
           # base line loss
-          cur_loss = self.MSELoss( pred[0], target = target ).cpu().item()
+          cur_loss = self.MSELoss( pred[0][mask], target = target[mask] ).cpu().item()
            
           loss += cur_loss 
           total_losses[ifield] += cur_loss
@@ -434,6 +441,8 @@ class Trainer_Base() :
                                             [ti.detach().clone().cpu() for ti in token_infos]])
                                             
     # average over all nodes
+    # print(f"\n\n !!! test_len {test_len} !!! \n\n")
+    # print(f"\n\n !!! fields len {len(self.cf.fields_prediction)} !!! \n\n")
     total_loss /= test_len * len(self.cf.fields_prediction)
     total_losses /= test_len
     if cf.with_ddp :
@@ -548,6 +557,7 @@ class Trainer_Base() :
       target = self.targets[idx]
 
       mask = target != config.filler_value
+      # print(f"\n masked data is {torch.sum(mask)} out of {torch.numel(target)} \n")
 
       mse_loss = self.MSELoss( pred[0][mask], target = target[mask])
       mse_loss_total += mse_loss.cpu().detach()
@@ -566,11 +576,11 @@ class Trainer_Base() :
 
       # Generalized cross entroy loss for continuous distributions
       if 'stats' in self.cf.losses :
-        stats_loss = Gaussian( target, pred[0], pred[1])  
+        stats_loss = Gaussian( target[mask], pred[0][mask], pred[1][mask])
         diff = (stats_loss-1.)
 
         # stats_loss = 0.01 * torch.mean( diff * diff) + torch.mean( torch.sqrt(torch.abs( pred[1])) )
-        stats_loss = torch.mean( diff * diff) + torch.mean( torch.sqrt( torch.abs( pred[1])) )
+        stats_loss = torch.mean( diff * diff) + torch.mean( torch.sqrt( torch.abs( pred[1][mask])) )
         losses['stats'].append( stats_loss) 
       
       # Generalized cross entroy loss for continuous distributions
@@ -765,11 +775,12 @@ class Trainer_BERT( Trainer_Base) :
       lat_min, lat_max = tinfo[0][4], tinfo[ num_tokens[1]*num_tokens[2]-1 ][4]
       lon_min, lon_max = tinfo[0][5], tinfo[ num_tokens[1]*num_tokens[2]-1 ][5]
       res = tinfo[0][-1]
-      lat = torch.arange( lat_min - lat_d_h*res, lat_max + lat_d_h*res + 0.001, res)
+      # print(f"\n res {res} lat_min {lat_min} lat_max {lat_max} lon_min {lon_min} lon_max {lon_max} \n")
+      lat = torch.arange( lat_min - lat_d_h*res, lat_max + lat_d_h*res, res)
       if lon_max < lon_min :
-        lon = torch.arange( lon_min - lon_d_h*res, 360. + lon_max + lon_d_h*res + 0.001, res)
+        lon = torch.arange( lon_min - lon_d_h*res, 360. + lon_max + lon_d_h*res, res)
       else :
-        lon = torch.arange( lon_min - lon_d_h*res, lon_max + lon_d_h*res + 0.001, res) 
+        lon = torch.arange( lon_min - lon_d_h*res, lon_max + lon_d_h*res, res)
       lats.append( lat.numpy())
       lons.append( torch.remainder( lon, 360.).numpy())
 
@@ -779,7 +790,7 @@ class Trainer_BERT( Trainer_Base) :
     # extract dates for each token entry, constant for each batch and field
     dates_t = []
     for b_token_infos in token_infos[0] :
-      dates_t.append(utils.token_info_to_time(b_token_infos[0])-pd.Timedelta(hours=token_size[0]-1))
+      dates_t.append(utils.token_info_to_time(b_token_infos[0])-pd.Timedelta(days=token_size[0]-1))
 
     # TODO: check that last token matches first one
 
@@ -796,6 +807,7 @@ class Trainer_BERT( Trainer_Base) :
         for vidx, _ in enumerate(field_info[2]) :
           denormalize = self.model.normalizer( fidx, vidx).denormalize
           date, coords = dates_t[bidx], [lats[bidx], lons[bidx]]
+          # code.interact(local=locals())
           source[bidx,vidx] = denormalize( date.year, date.month, source[bidx,vidx], coords)
           target[bidx,vidx] = denormalize( date.year, date.month, target[bidx,vidx], coords)
       # append
@@ -830,14 +842,15 @@ class Trainer_BERT( Trainer_Base) :
     # generate time range
     dates_sources, dates_targets = [ ], [ ]
     for bidx in range( source.shape[0]) :
-      r = pd.date_range( start=dates_t[bidx], periods=source.shape[2], freq='h')
+      r = pd.date_range( start=dates_t[bidx], periods=source.shape[2], freq='D')
+      # print(f"\n dates_t {dates_t[bidx]} sources.shape {source.shape} date range {r} \n")
       dates_sources.append( r.to_pydatetime().astype( 'datetime64[s]') )
       dates_targets.append( dates_sources[-1][ -forecast_num_tokens*token_size[0] : ] )
 
     levels = np.array(cf.fields[0][2])
     lats = [90.-lat for lat in lats]
 
-    write_forecast( cf.wandb_id, epoch, batch_idx,
+    write_forecast( cf.model_id, epoch, batch_idx,
                                  levels, sources_out, [dates_sources, lats, lons],
                                  targets_out, [dates_targets, lats, lons],
                                  preds_out, ensembles_out )

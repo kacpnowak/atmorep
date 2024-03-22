@@ -58,8 +58,11 @@ class NormalizerLocal() :
     return data
 
   def denormalize( self, year, month, data, coords) :
-
-    corr_data_ym = self.corr_data[ (year - config.year_base) * 12 + month ]
+    # print(f"\n\n coords[0] min: {np.min(coords[0])} \n\n")
+    # print(f"\n\n coords[0] max: {np.max(coords[0])} \n\n")
+    # print(f"\n\n : {np.max(coords[0])} \n\n
+    corr_data_ym = self.corr_data[ (year - config.year_base) * 12 + month - 1 ]
+    # code.interact(local=locals())
     mean = corr_data_ym.sel( lat=coords[0], lon=coords[1], data='mean').values
     var = corr_data_ym.sel( lat=coords[0], lon=coords[1], data='var').values
 

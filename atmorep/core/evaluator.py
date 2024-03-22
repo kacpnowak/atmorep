@@ -78,6 +78,7 @@ class Evaluator( Trainer_BERT) :
     par_rank, par_size = setup_ddp( with_ddp)
 
     cf = Config().load_json( model_id)
+    print(f"\n cf.num_loader_workers: {cf.num_loader_workers} \n")
     cf.with_wandb = True
     cf.with_ddp = with_ddp
     cf.par_rank = par_rank
@@ -86,11 +87,12 @@ class Evaluator( Trainer_BERT) :
     cf.data_dir = str(config.path_data)
     cf.attention = False
     setup_wandb( cf.with_wandb, cf, par_rank, '', mode='offline')
+   # cf.wandb_id = 'test'
     if 0 == cf.par_rank :
       print( 'Running Evaluate.evaluate with mode =', mode)
 
-    cf.num_loader_workers = cf.loader_num_workers
-    cf.data_dir = './data/'
+    # cf.num_loader_workers = cf.loader_num_workers
+    # cf.data_dir = config.path_data
 
     func = getattr( Evaluator, mode)
     func( cf, model_id, model_epoch, devices, args)

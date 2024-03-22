@@ -134,7 +134,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
 
       smoothing = self.smoothing
       log_transform_data = False
-      print(f"\n\nFIELD INFO!!!!  {field_info} !!! \n\n")
+      # print(f"\n\nFIELD INFO!!!!  {field_info} !!! \n\n")
       if len(field_info) > 7 :
         (data_type, file_shape, file_geo_range, file_format) = field_info[7][:4]
         if len( field_info[7]) > 6 :
@@ -310,26 +310,26 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
   def load_data( self, batch_size = None) :
 
     years_data = self.years_data
-    print(f"\n\n !!! years data {years_data} !!! \n\n")
+    # print(f"\n\n !!! years data {years_data} !!! \n\n")
     # ensure proper separation of different random samplers
     delta = torch.randint( 0, 1000, (1,)).item()
     self.rng.bit_generator.advance( delta)
 
-    # select num_load random months and years 
+    # select num_load random months and years
     perms = np.concatenate( [self.rng.permutation( np.arange(len(years_data))) for i in range(64)])
     perms = perms[:self.num_load * config.months_per_file]
-    if self.month : 
+    if self.month :
       self.years_months = [ (years_data[iyear], self.month) for iyear in perms]
-    else : 
-      # stratified sampling of month to ensure proper distribution, needs to be adapted for 
+    else :
+      # stratified sampling of month to ensure proper distribution, needs to be adapted for
       # number of parallel workers not being divisible by 4
       # rank, ms = torch.distributed.get_rank() % 4, 3
-      # perms_m = np.concatenate( [self.rng.permutation( np.arange( rank*ms+1, (rank+1)*ms+1))
-                                                                              # for i in range(16)])
-      perms_m = np.concatenate( [self.rng.permutation( np.arange( 1, 12+1)) for i in range(16)])
+      # perms_m = np.concatenate( [self.rng.permutation( np.arange( rank*ms+1, (rank+1)*ms+1)) for i in range(16)])
+      perms_m = np.concatenate( [self.rng.permutation( np.arange( 1, 12+1)) for i in range(64)])
+      # print(f"\n\n !!! perm {perms.shape} \n perms_m {perms_m.shape} !!! \n\n")
       self.years_months = [ ( years_data[iyear], perms_m[i]) for i,iyear in enumerate(perms)]
 
-    # generate random permutations passed to the loaders for individual files 
+    # generate random permutations passed to the loaders for individual files
     # to ensure consistent processing
     self.shuffle()
 
@@ -475,6 +475,7 @@ class MultifieldDataSampler( torch.utils.data.IterableDataset):
     for bidx in range( iter_start, iter_end) :
 
       sources = []
+      # code.interact(local=locals())
       for ds_field in self.datasets : 
         sources.append( [ds_level[bidx] for ds_level in ds_field])
       # perform batch pre-processing, e.g. BERT-type masking
