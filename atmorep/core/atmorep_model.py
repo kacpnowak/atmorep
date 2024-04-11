@@ -185,6 +185,7 @@ class AtmoRepData( torch.nn.Module) :
 
   ###################################################
   def next( self) :
+    # code.interact(local=locals())
     return next(self.data_loader_iter)
 
   ###################################################
@@ -208,6 +209,7 @@ class AtmoRepData( torch.nn.Module) :
     self.pre_batch_targets = pre_batch_targets
 
     cf = self.net.cf
+    # print(f"\n\nFIELD INFO!!!!  {cf.fields} !!! \n\n")
     self.dataset_train = MultifieldDataSampler( cf.data_dir, cf.years_train, cf.fields,
                                                 batch_size = cf.batch_size_start,
                                                 num_t_samples = cf.num_t_samples,
@@ -281,9 +283,10 @@ class AtmoRep( torch.nn.Module) :
       if len(field_info[1]) > 4 and load_pretrained :
         # TODO: inconsistent with embeds_token_info -> version that can handle both
         #       we could imply use the file name: embed_token_info vs embeds_token_info
-        name = 'AtmoRep' + '_embed_token_info'
+        name = 'AtmoRep' + '_embeds_token_info'
+        print(f"\n\n fileld_info {field_info[1][4][0]}  \n\n")
         mloaded = torch.load( get_model_filename( name, field_info[1][4][0], field_info[1][4][1]))
-        self.embeds_token_info[-1].load_state_dict( mloaded)
+        self.embeds_token_info[-1].load_state_dict( mloaded, strict=False)
         print( 'Loaded embed_token_info from id = {}.'.format( field_info[1][4][0] ) )
       else :
         # initalization
